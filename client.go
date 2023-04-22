@@ -1,18 +1,36 @@
+// Copyright 2017 The Ebiten Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package main
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
 	"image"
 	"image/color"
 	_ "image/png"
 	"log"
 	"strings"
+	"time"
 
+	"github.com/gorilla/websocket"
+	"github.com/hajimehoshi/ebiten/v2"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/goregular"
 	"golang.org/x/image/font/opentype"
 
-	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text"
@@ -427,6 +445,7 @@ type Game struct {
 	button2    *Button
 	checkBox   *CheckBox
 	textBoxLog *TextBox
+	keys       []ebiten.Key
 }
 
 func NewGame() *Game {
@@ -450,6 +469,7 @@ func NewGame() *Game {
 
 	g.button1.SetOnPressed(func(b *Button) {
 		g.textBoxLog.AppendLine("Button 1 Pressed")
+		go wsXY()
 	})
 	g.button2.SetOnPressed(func(b *Button) {
 		g.textBoxLog.AppendLine("Button 2 Pressed")
@@ -471,6 +491,8 @@ func (g *Game) Update() error {
 	g.button2.Update()
 	g.checkBox.Update()
 	g.textBoxLog.Update()
+	g.keys = inpututil.AppendPressedKeys(g.keys[:0])
+	fmt.Println(g.keys)
 	return nil
 }
 
@@ -485,6 +507,58 @@ func (g *Game) Draw(screen *ebiten.Image) {
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return screenWidth, screenHeight
 }
+
+/*
+WebSocket Start
+*/
+
+type Player struct {
+	ID int
+	X  int
+	Y  int
+}
+
+func wsXY() {
+	conn, _, err := websocket.DefaultDialer.Dial("ws://localhost:8080/ws", nil)
+	if err != nil {
+		fmt.Println("Error connecting to server:", err)
+		return
+	}
+	defer conn.Close()
+
+	go func() {
+		for {
+			_, message, err := conn.ReadMessage()
+			if err != nil {
+				fmt.Println("Error reading message from server:", err)
+				return
+			}
+			fmt.Printf("Received: %s\n", message)
+		}
+	}()
+
+	for {
+		// この部分を適切な座標取得ロジックで置き換えてください
+		p := Player{X: 10, Y: 20}
+		data, err := json.Marshal(p)
+		if err != nil {
+			fmt.Println("Error marshalling JSON:", err)
+			break
+		}
+
+		err = conn.WriteMessage(websocket.TextMessage, data)
+		if err != nil {
+			fmt.Println("Error sending message to server:", err)
+			break
+		}
+
+		time.Sleep(1 * time.Second)
+	}
+}
+
+/*
+WebSocket End
+*/
 
 func main() {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
