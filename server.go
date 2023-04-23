@@ -50,15 +50,21 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 
 	go func() {
 		for {
-			for id, p := range players {
+			playersMutex.Lock()
+			copyPlayers := make(map[int]Player)
+			for k, v := range players {
+				copyPlayers[k] = (*v)
+			}
+			playersMutex.Unlock()
+			for id, p := range copyPlayers {
 				err := conn.WriteJSON(p)
 				if err != nil {
 					fmt.Println("Error writing JSON:", err)
 					return
 				}
 				fmt.Printf("Sent player %d\n", id)
-				time.Sleep(20 * time.Millisecond)
 			}
+			time.Sleep(5 * time.Millisecond)
 		}
 	}()
 

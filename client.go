@@ -24,6 +24,7 @@ import (
 	"log"
 	"math/rand"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -36,6 +37,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/text"
+
+	pikachuPicture "github.com/pikachu0310/kiichigojam_2023-04-22/pictures"
 )
 
 const (
@@ -49,6 +52,9 @@ var (
 	uiImage       *ebiten.Image
 	uiFont        font.Face
 	uiFontMHeight int
+	bgImage       *ebiten.Image
+	// players      = make(map[int]*Player)
+	playersMutex = sync.Mutex{}
 )
 
 func init() {
@@ -73,6 +79,12 @@ func init() {
 	}
 	b, _, _ := uiFont.GlyphBounds('M')
 	uiFontMHeight = (b.Max.Y - b.Min.Y).Ceil()
+
+	img, _, err = image.Decode(bytes.NewReader(pikachuPicture.HoshizoraPng))
+	if err != nil {
+		log.Fatal(err)
+	}
+	bgImage = ebiten.NewImageFromImage(img)
 }
 
 type imageType int
@@ -440,13 +452,18 @@ func (c *CheckBox) SetOnCheckChanged(f func(c *CheckBox)) {
 	c.onCheckChanged = f
 }
 
+/*
+GameMainFunc Start
+*/
+
 type Game struct {
 	button1    *Button
 	button2    *Button
 	checkBox   *CheckBox
 	textBoxLog *TextBox
 	keys       []ebiten.Key
-	myPlayer   *Player
+	me         *Player
+	players    map[int]*Player
 }
 
 func NewGame() *Game {
@@ -486,6 +503,7 @@ func NewGame() *Game {
 	})
 
 	g.newPlayer()
+	g.players = make(map[int]*Player)
 
 	return g
 }
@@ -502,18 +520,23 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	screen.Fill(color.RGBA{0xeb, 0xeb, 0xeb, 0xff})
+	screen.DrawImage(bgImage, nil)
 	g.button1.Draw(screen)
-	g.button2.Draw(screen)
-	g.checkBox.Draw(screen)
-	g.textBoxLog.Draw(screen)
 
-	vector.DrawFilledRect(screen, float32(g.myPlayer.X)-2, float32(g.myPlayer.Y)-2, 4, 4, color.Black, true)
-	vector.DrawFilledRect(screen, float32(g.myPlayer.X)-1, float32(g.myPlayer.Y)-1, 2, 2, color.RGBA{255, 100, 100, 255}, true)
+	g.me.Draw(screen)
+
+	for _, p := range g.PlayersWithoutMe() {
+		p.Draw(screen)
+	}
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return screenWidth, screenHeight
 }
+
+/*
+GameMainFunc End
+*/
 
 /*
 WebSocket Start
@@ -535,18 +558,20 @@ func (g *Game) wsXY() {
 
 	go func() {
 		for {
-			_, message, err := conn.ReadMessage()
+			var p Player
+			err := conn.ReadJSON(&p)
 			if err != nil {
 				fmt.Println("Error reading message from server:", err)
 				return
 			}
-			fmt.Printf("Received: %s\n", message)
+			playersMutex.Lock()
+			g.players[p.ID] = &p
+			playersMutex.Unlock()
 		}
 	}()
 
 	for {
-		// この部分を適切な座標取得ロジックで置き換えてください
-		p := g.myPlayer
+		p := g.me
 		data, err := json.Marshal(p)
 		if err != nil {
 			fmt.Println("Error marshalling JSON:", err)
@@ -559,7 +584,7 @@ func (g *Game) wsXY() {
 			break
 		}
 
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(10 * time.Millisecond)
 	}
 }
 
@@ -568,53 +593,71 @@ WebSocket End
 */
 
 /*
-Game Start
+MyGame Start
 */
 func (g *Game) newPlayer() {
-	g.myPlayer = &Player{
+	g.me = &Player{
 		ID: rand.Int(),
 		X:  screenWidth / 2,
 		Y:  screenHeight / 2,
 	}
 }
 
+func (g *Game) PlayersWithoutMe() []*Player {
+	playersMutex.Lock()
+	defer playersMutex.Unlock()
+
+	players := make([]*Player, 0, len(g.players))
+	for _, p := range g.players {
+		if p.ID != g.me.ID {
+			players = append(players, p)
+		}
+	}
+	return players
+}
+
+func (p *Player) Draw(dst *ebiten.Image) {
+	vector.DrawFilledRect(dst, float32(p.X)-8, float32(p.Y)-8, 16, 16, color.RGBA{200, 200, 200, 255}, true)
+	vector.DrawFilledRect(dst, float32(p.X)-4, float32(p.Y)-4, 8, 8, color.RGBA{255, 100, 100, 255}, true)
+}
+
 func (g *Game) handleMovement() {
 	if ebiten.IsKeyPressed(ebiten.KeyD) || ebiten.IsKeyPressed(ebiten.KeyArrowRight) {
-		g.myPlayer.X += 4
+		g.me.X += 4
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeyS) || ebiten.IsKeyPressed(ebiten.KeyArrowDown) {
-		g.myPlayer.Y += 4
+		g.me.Y += 4
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeyA) || ebiten.IsKeyPressed(ebiten.KeyArrowLeft) {
-		g.myPlayer.X -= 4
+		g.me.X -= 4
 	}
 
 	if ebiten.IsKeyPressed(ebiten.KeyW) || ebiten.IsKeyPressed(ebiten.KeyArrowUp) {
-		g.myPlayer.Y -= 4
+		g.me.Y -= 4
 	}
 
 	// +1/-1 is to stop player before it reaches the border
-	if g.myPlayer.X >= screenWidth-padding {
-		g.myPlayer.X = screenWidth - padding - 1
+	if g.me.X >= screenWidth-padding {
+		g.me.X = screenWidth - padding - 1
 	}
 
-	if g.myPlayer.X <= padding {
-		g.myPlayer.X = padding + 1
+	if g.me.X <= padding {
+		g.me.X = padding + 1
 	}
 
-	if g.myPlayer.Y >= screenHeight-padding {
-		g.myPlayer.Y = screenHeight - padding - 1
+	if g.me.Y >= screenHeight-padding {
+		g.me.Y = screenHeight - padding - 1
 	}
 
-	if g.myPlayer.Y <= padding {
-		g.myPlayer.Y = padding + 1
+	if g.me.Y <= padding {
+		g.me.Y = padding + 1
 	}
 }
 
 /*
-Game End
+MyGame End
 */
 
 func main() {

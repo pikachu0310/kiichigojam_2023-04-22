@@ -1,4 +1,4 @@
-module kiichigojam20230422
+module github.com/pikachu0310/kiichigojam_2023-04-22
 
 go 1.20
 
