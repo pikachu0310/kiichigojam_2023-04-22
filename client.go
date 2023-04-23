@@ -22,11 +22,13 @@ import (
 	"image/color"
 	_ "image/png"
 	"log"
+	"math/rand"
 	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/goregular"
 	"golang.org/x/image/font/opentype"
@@ -37,7 +39,10 @@ import (
 )
 
 const (
-	lineHeight = 16
+	lineHeight   = 16
+	padding      = 20
+	screenWidth  = 640 * 2
+	screenHeight = 480 * 1.5
 )
 
 var (
@@ -93,11 +98,6 @@ var imageSrcRects = map[imageType]image.Rectangle{
 	imageTypeCheckBoxPressed: image.Rect(16, 32, 32, 48),
 	imageTypeCheckBoxMark:    image.Rect(32, 32, 48, 48),
 }
-
-const (
-	screenWidth  = 640
-	screenHeight = 480
-)
 
 type Input struct {
 	mouseButtonState int
@@ -446,6 +446,7 @@ type Game struct {
 	checkBox   *CheckBox
 	textBoxLog *TextBox
 	keys       []ebiten.Key
+	myPlayer   *Player
 }
 
 func NewGame() *Game {
@@ -469,7 +470,7 @@ func NewGame() *Game {
 
 	g.button1.SetOnPressed(func(b *Button) {
 		g.textBoxLog.AppendLine("Button 1 Pressed")
-		go wsXY()
+		go g.wsXY()
 	})
 	g.button2.SetOnPressed(func(b *Button) {
 		g.textBoxLog.AppendLine("Button 2 Pressed")
@@ -483,6 +484,9 @@ func NewGame() *Game {
 		}
 		g.textBoxLog.AppendLine(msg)
 	})
+
+	g.newPlayer()
+
 	return g
 }
 
@@ -492,7 +496,7 @@ func (g *Game) Update() error {
 	g.checkBox.Update()
 	g.textBoxLog.Update()
 	g.keys = inpututil.AppendPressedKeys(g.keys[:0])
-	fmt.Println(g.keys)
+	g.handleMovement()
 	return nil
 }
 
@@ -502,6 +506,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	g.button2.Draw(screen)
 	g.checkBox.Draw(screen)
 	g.textBoxLog.Draw(screen)
+
+	vector.DrawFilledRect(screen, float32(g.myPlayer.X)-2, float32(g.myPlayer.Y)-2, 4, 4, color.Black, true)
+	vector.DrawFilledRect(screen, float32(g.myPlayer.X)-1, float32(g.myPlayer.Y)-1, 2, 2, color.RGBA{255, 100, 100, 255}, true)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -518,7 +525,7 @@ type Player struct {
 	Y  int
 }
 
-func wsXY() {
+func (g *Game) wsXY() {
 	conn, _, err := websocket.DefaultDialer.Dial("ws://localhost:8080/ws", nil)
 	if err != nil {
 		fmt.Println("Error connecting to server:", err)
@@ -539,7 +546,7 @@ func wsXY() {
 
 	for {
 		// この部分を適切な座標取得ロジックで置き換えてください
-		p := Player{X: 10, Y: 20}
+		p := g.myPlayer
 		data, err := json.Marshal(p)
 		if err != nil {
 			fmt.Println("Error marshalling JSON:", err)
@@ -552,7 +559,7 @@ func wsXY() {
 			break
 		}
 
-		time.Sleep(1 * time.Second)
+		time.Sleep(100 * time.Millisecond)
 	}
 }
 
@@ -560,9 +567,59 @@ func wsXY() {
 WebSocket End
 */
 
+/*
+Game Start
+*/
+func (g *Game) newPlayer() {
+	g.myPlayer = &Player{
+		ID: rand.Int(),
+		X:  screenWidth / 2,
+		Y:  screenHeight / 2,
+	}
+}
+
+func (g *Game) handleMovement() {
+	if ebiten.IsKeyPressed(ebiten.KeyD) || ebiten.IsKeyPressed(ebiten.KeyArrowRight) {
+		g.myPlayer.X += 4
+	}
+
+	if ebiten.IsKeyPressed(ebiten.KeyS) || ebiten.IsKeyPressed(ebiten.KeyArrowDown) {
+		g.myPlayer.Y += 4
+	}
+
+	if ebiten.IsKeyPressed(ebiten.KeyA) || ebiten.IsKeyPressed(ebiten.KeyArrowLeft) {
+		g.myPlayer.X -= 4
+	}
+
+	if ebiten.IsKeyPressed(ebiten.KeyW) || ebiten.IsKeyPressed(ebiten.KeyArrowUp) {
+		g.myPlayer.Y -= 4
+	}
+
+	// +1/-1 is to stop player before it reaches the border
+	if g.myPlayer.X >= screenWidth-padding {
+		g.myPlayer.X = screenWidth - padding - 1
+	}
+
+	if g.myPlayer.X <= padding {
+		g.myPlayer.X = padding + 1
+	}
+
+	if g.myPlayer.Y >= screenHeight-padding {
+		g.myPlayer.Y = screenHeight - padding - 1
+	}
+
+	if g.myPlayer.Y <= padding {
+		g.myPlayer.Y = padding + 1
+	}
+}
+
+/*
+Game End
+*/
+
 func main() {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
-	ebiten.SetWindowTitle("UI (Ebitengine Demo)")
+	ebiten.SetWindowTitle("Mirai Yochi")
 	if err := ebiten.RunGame(NewGame()); err != nil {
 		log.Fatal(err)
 	}

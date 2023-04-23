@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -47,11 +48,19 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
-	playersMutex.Lock()
-	id := playerID
-	playerID++
-	players[id] = &Player{ID: id}
-	playersMutex.Unlock()
+	go func() {
+		for {
+			for id, p := range players {
+				err := conn.WriteJSON(p)
+				if err != nil {
+					fmt.Println("Error writing JSON:", err)
+					return
+				}
+				fmt.Printf("Sent player %d\n", id)
+				time.Sleep(20 * time.Millisecond)
+			}
+		}
+	}()
 
 	for {
 		var p Player
@@ -62,8 +71,7 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		}
 
 		playersMutex.Lock()
-		players[id].X = p.X
-		players[id].Y = p.Y
+		players[p.ID] = &p
 		playersMutex.Unlock()
 	}
 }
@@ -75,5 +83,6 @@ func handlePlayerUpdates() {
 			fmt.Printf("Player ID: %d, X: %d, Y: %d\n", id, p.X, p.Y)
 		}
 		playersMutex.Unlock()
+		time.Sleep(1000 * time.Millisecond)
 	}
 }
