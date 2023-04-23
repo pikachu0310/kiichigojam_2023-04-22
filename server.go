@@ -10,10 +10,16 @@ import (
 )
 
 type Player struct {
-	ID   int
-	X    int
-	Y    int
-	Name string
+	Type string `json:"type"`
+	ID   int    `json:"id"`
+	X    int    `json:"x"`
+	Y    int    `json:"y"`
+	Name string `json:"name"`
+}
+
+type JsonData struct {
+	Type string      `json:"type"`
+	Data interface{} `json:"data"`
 }
 
 var (
@@ -58,7 +64,12 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			}
 			playersMutex.Unlock()
 
-			err := conn.WriteJSON(copyPlayers)
+			jsonData := JsonData{
+				Type: "players",
+				Data: copyPlayers,
+			}
+
+			err := conn.WriteJSON(jsonData)
 			if err != nil {
 				fmt.Println("Error writing JSON:", err)
 				return

@@ -30,6 +30,7 @@ import (
 	"github.com/crazy3lf/colorconv"
 	"github.com/gorilla/websocket"
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/text"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 	"golang.org/x/image/font"
@@ -529,6 +530,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	for _, p := range g.PlayersWithoutMe() {
 		p.Draw(screen)
 	}
+
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("TPS: %0.2f", ebiten.ActualTPS()), 51, 51)
+	ebitenutil.DebugPrintAt(screen, fmt.Sprintf("FPS: %0.2f", ebiten.ActualFPS()), 51, 61)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -544,10 +548,16 @@ WebSocket Start
 */
 
 type Player struct {
-	ID   int
-	X    int
-	Y    int
-	Name string
+	Type string `json:"type"`
+	ID   int    `json:"id"`
+	X    int    `json:"x"`
+	Y    int    `json:"y"`
+	Name string `json:"name"`
+}
+
+type JsonData struct {
+	Type string          `json:"type"`
+	Data json.RawMessage `json:"data"`
 }
 
 func (g *Game) wsXY() {
@@ -560,19 +570,28 @@ func (g *Game) wsXY() {
 
 	go func() {
 		for {
-			// var p Player
-			p := make(map[int]*Player)
-			err := conn.ReadJSON(&p)
+			var jsonData JsonData
+			err := conn.ReadJSON(&jsonData)
 			if err != nil {
 				fmt.Println("Error reading message from server:", err)
 				return
 			}
-			playersMutex.Lock()
-			for k, v := range p {
-				g.players[k] = v
+
+			if jsonData.Type == "players" {
+				var p map[int]*Player
+				err := json.Unmarshal(jsonData.Data, &p)
+				if err != nil {
+					fmt.Println("Error unmarshalling JSON:", err)
+					break
+				}
+				playersMutex.Lock()
+				for k, v := range p {
+					g.players[k] = v
+				}
+				playersMutex.Unlock()
+			} else {
+				fmt.Println("Unmarshal error: Type not found")
 			}
-			playersMutex.Unlock()
-			// fmt.Printf("%v\n", g.players)
 		}
 	}()
 
