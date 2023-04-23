@@ -471,8 +471,8 @@ type Game struct {
 func NewGame() *Game {
 	g := &Game{}
 	g.button1 = &Button{
-		Rect: image.Rect(16, 16, 144, 48),
-		Text: "Button 1",
+		Rect: image.Rect(16, 16, 16*10, 48),
+		Text: "Connect To Server",
 	}
 	g.button2 = &Button{
 		Rect: image.Rect(160, 16, 288, 48),
