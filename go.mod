@@ -3,6 +3,7 @@ module github.com/pikachu0310/kiichigojam_2023-04-22
 go 1.20
 
 require (
+	github.com/crazy3lf/colorconv v1.2.0
 	github.com/gorilla/websocket v1.5.0
 	github.com/hajimehoshi/bitmapfont/v2 v2.2.3
 	github.com/hajimehoshi/ebiten/v2 v2.5.2

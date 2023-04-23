@@ -27,8 +27,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/crazy3lf/colorconv"
 	"github.com/gorilla/websocket"
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/text"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/goregular"
@@ -36,7 +38,6 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
-	"github.com/hajimehoshi/ebiten/v2/text"
 
 	pikachuPicture "github.com/pikachu0310/kiichigojam_2023-04-22/pictures"
 )
@@ -571,7 +572,7 @@ func (g *Game) wsXY() {
 				g.players[k] = v
 			}
 			playersMutex.Unlock()
-			fmt.Printf("%v\n", g.players)
+			// fmt.Printf("%v\n", g.players)
 		}
 	}()
 
@@ -622,8 +623,21 @@ func (g *Game) PlayersWithoutMe() []*Player {
 }
 
 func (p *Player) Draw(dst *ebiten.Image) {
-	vector.DrawFilledRect(dst, float32(p.X)-8, float32(p.Y)-8, 16, 16, color.RGBA{200, 200, 200, 255}, true)
-	vector.DrawFilledRect(dst, float32(p.X)-4, float32(p.Y)-4, 8, 8, color.RGBA{255, 100, 100, 255}, true)
+	r, g, b, err := colorconv.HSVToRGB(float64(p.ID%360), 0.4, 1.0)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	mainColor := color.RGBA{R: r, G: g, B: b, A: 255}
+	r, g, b, err = colorconv.HSVToRGB(float64(p.ID%360), 0.75, 0.8)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	outLineColor := color.RGBA{R: r, G: g, B: b, A: 255}
+
+	vector.StrokeCircle(dst, float32(p.X), float32(p.Y), 16, 4, outLineColor, true)
+	vector.DrawFilledCircle(dst, float32(p.X), float32(p.Y), 14, mainColor, true)
 }
 
 func (g *Game) handleMovement() {
