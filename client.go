@@ -44,8 +44,8 @@ import (
 const (
 	lineHeight   = 16
 	padding      = 20
-	screenWidth  = 640 * 2
-	screenHeight = 480 * 1.5
+	screenWidth  = 1105 // 640 * 2
+	screenHeight = 830  // 480 * 1.5
 )
 
 var (
@@ -543,9 +543,10 @@ WebSocket Start
 */
 
 type Player struct {
-	ID int
-	X  int
-	Y  int
+	ID   int
+	X    int
+	Y    int
+	Name string
 }
 
 func (g *Game) wsXY() {
@@ -558,15 +559,19 @@ func (g *Game) wsXY() {
 
 	go func() {
 		for {
-			var p Player
+			// var p Player
+			p := make(map[int]*Player)
 			err := conn.ReadJSON(&p)
 			if err != nil {
 				fmt.Println("Error reading message from server:", err)
 				return
 			}
 			playersMutex.Lock()
-			g.players[p.ID] = &p
+			for k, v := range p {
+				g.players[k] = v
+			}
 			playersMutex.Unlock()
+			fmt.Printf("%v\n", g.players)
 		}
 	}()
 

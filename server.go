@@ -10,9 +10,10 @@ import (
 )
 
 type Player struct {
-	ID int
-	X  int
-	Y  int
+	ID   int
+	X    int
+	Y    int
+	Name string
 }
 
 var (
@@ -53,16 +54,14 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 			playersMutex.Lock()
 			copyPlayers := make(map[int]Player)
 			for k, v := range players {
-				copyPlayers[k] = (*v)
+				copyPlayers[k] = *v
 			}
 			playersMutex.Unlock()
-			for id, p := range copyPlayers {
-				err := conn.WriteJSON(p)
-				if err != nil {
-					fmt.Println("Error writing JSON:", err)
-					return
-				}
-				fmt.Printf("Sent player %d\n", id)
+
+			err := conn.WriteJSON(copyPlayers)
+			if err != nil {
+				fmt.Println("Error writing JSON:", err)
+				return
 			}
 			time.Sleep(5 * time.Millisecond)
 		}
