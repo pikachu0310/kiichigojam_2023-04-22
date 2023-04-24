@@ -605,13 +605,8 @@ func (g *Game) wsXY() {
 
 	for {
 		p := g.me
-		data, err := json.Marshal(p)
-		if err != nil {
-			fmt.Println("Error marshalling JSON:", err)
-			break
-		}
 
-		err = wsjson.Write(ctx, conn, &data)
+		err = wsjson.Write(ctx, conn, p)
 		if err != nil {
 			fmt.Println("Error sending message to server:", err)
 			break
