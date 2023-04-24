@@ -41,7 +41,7 @@ func main() {
 	go handlePlayerUpdates()
 
 	fmt.Println("Server listening on :8080")
-	err := http.ListenAndServe(":8080", nil)
+	err := http.ListenAndServeTLS(":8080", "cert.pem", "key.pem", nil)
 	if err != nil {
 		fmt.Println("Error starting server:", err)
 	}

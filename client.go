@@ -24,6 +24,7 @@ import (
 	_ "image/png"
 	"log"
 	"math/rand"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -569,7 +570,9 @@ func (g *Game) wsXY() {
 	opts := &websocket.DialOptions{
 		Subprotocols: []string{"json"},
 	}
-	conn, _, err := websocket.Dial(ctx, "ws://34.85.37.131:8080/ws", opts)
+
+	u := url.URL{Scheme: "wss", Host: "localhost:8080", Path: "/ws"}
+	conn, _, err := websocket.Dial(ctx, u.String(), opts)
 	if err != nil {
 		fmt.Println("Error connecting to server:", err)
 		return
