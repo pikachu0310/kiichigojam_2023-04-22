@@ -16,6 +16,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"image"
@@ -28,7 +29,6 @@ import (
 	"time"
 
 	"github.com/crazy3lf/colorconv"
-	"github.com/gorilla/websocket"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/text"
@@ -36,6 +36,8 @@ import (
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/goregular"
 	"golang.org/x/image/font/opentype"
+	"nhooyr.io/websocket"
+	"nhooyr.io/websocket/wsjson"
 
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -561,17 +563,23 @@ type JsonData struct {
 }
 
 func (g *Game) wsXY() {
-	conn, _, err := websocket.DefaultDialer.Dial("ws://34.85.37.131:8080/ws", nil)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	opts := &websocket.DialOptions{
+		Subprotocols: []string{"json"},
+	}
+	conn, _, err := websocket.Dial(ctx, "ws://34.85.37.131:8080/ws", opts)
 	if err != nil {
 		fmt.Println("Error connecting to server:", err)
 		return
 	}
-	defer conn.Close()
+	defer conn.Close(websocket.StatusInternalError, "closing connection")
 
 	go func() {
 		for {
 			var jsonData JsonData
-			err := conn.ReadJSON(&jsonData)
+			err := wsjson.Read(ctx, conn, &jsonData)
 			if err != nil {
 				fmt.Println("Error reading message from server:", err)
 				return
@@ -603,7 +611,7 @@ func (g *Game) wsXY() {
 			break
 		}
 
-		err = conn.WriteMessage(websocket.TextMessage, data)
+		err = wsjson.Write(ctx, conn, &data)
 		if err != nil {
 			fmt.Println("Error sending message to server:", err)
 			break
