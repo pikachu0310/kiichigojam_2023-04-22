@@ -1,0 +1,45 @@
+# <<< common setting >>>
+
+# deploy mode <"static", "runtime", "fcgi-*"> (required)
+type: "runtime"
+
+# script executed on startup (default: null)
+startup: null
+
+# use external databases (default: false)
+use_mongodb: false
+use_mariadb: false
+
+# relative path to document root (default: .)
+work_dir: "/srv"
+
+# <<< runtime only setting >>>
+
+# docker entrypoint command (default: "cat")
+entrypoint: "go run server.go"
+
+# which port to proxy via http(80) (default: null)
+http_proxy: 8081
+
+# which port to expose <array or int> (default: [])
+expose: [8081]
+
+# enviromnent variables passed to docker container (default: {})
+envs: {}
+
+# <<< static or http-proxied-runtime only setting >>>
+
+# additional server name <array or string> (default: [])
+cname: []
+
+# parse user token, restrict access from non-traP user <"off", "soft", "hard"> (default: "off")
+internal: "off"
+
+# use secure access <"off", "on"> (default: "off")
+https: "on"
+
+# <<< branch deploy setting >>>
+
+# custom deploy setting <see document!> (default: {master: null})
+branch:
+  master: null
