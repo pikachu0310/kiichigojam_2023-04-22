@@ -37,6 +37,9 @@ var (
 
 func main() {
 	http.HandleFunc("/ws", handleConnections)
+	http.HandleFunc("/", returnIndex)
+	http.HandleFunc("/wasm_exec.js", returnWasmExec)
+	http.HandleFunc("/client.wasm", returnClient)
 
 	go handlePlayerUpdates()
 
@@ -90,6 +93,21 @@ func handleConnections(w http.ResponseWriter, r *http.Request) {
 		players[p.ID] = &p
 		playersMutex.Unlock()
 	}
+}
+
+func returnIndex(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Serving index.html")
+	http.ServeFile(w, r, "index.html")
+}
+
+func returnWasmExec(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Serving wasm_exec.js")
+	http.ServeFile(w, r, "wasm_exec.js")
+}
+
+func returnClient(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Serving client.wasm")
+	http.ServeFile(w, r, "client.wasm")
 }
 
 func handlePlayerUpdates() {
