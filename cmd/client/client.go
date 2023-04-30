@@ -19,6 +19,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/hajimehoshi/ebiten/v2"
 	"image"
 	"image/color"
 	_ "image/png"
@@ -30,7 +31,6 @@ import (
 	"time"
 
 	"github.com/crazy3lf/colorconv"
-	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/text"
 	"github.com/hajimehoshi/ebiten/v2/vector"
@@ -571,7 +571,7 @@ func (g *Game) wsXY() {
 		Subprotocols: []string{"json"},
 	}
 
-	u := url.URL{Scheme: "wss", Host: "localhost:8081", Path: "/ws"}
+	u := url.URL{Scheme: "wss", Host: "150.95.176.54:8081", Path: "/ws"}
 	conn, _, err := websocket.Dial(ctx, u.String(), opts)
 	if err != nil {
 		fmt.Println("Error connecting to server:", err)
