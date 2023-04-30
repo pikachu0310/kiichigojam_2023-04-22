@@ -16,7 +16,7 @@ work_dir: "/srv/"
 # <<< runtime only setting >>>
 
 # docker entrypoint command (default: "cat")
-entrypoint: "cd cmd/server && go run server.go"
+entrypoint: "cd cmd/server && curl ifconfig.me &&go run server.go"
 
 # which port to proxy via http(80) (default: null)
 http_proxy: 8081
