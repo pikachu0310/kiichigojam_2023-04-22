@@ -42,4 +42,4 @@ https: "on"
 
 # custom deploy setting <see document!> (default: {master: null})
 branch:
-  main: null
+  master: null
