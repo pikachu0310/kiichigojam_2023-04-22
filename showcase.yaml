@@ -36,7 +36,7 @@ cname: "pikachu20230501.trap.games"
 internal: "off"
 
 # use secure access <"off", "on"> (default: "off")
-https: "hard"
+https: "on"
 
 # <<< branch deploy setting >>>
 
