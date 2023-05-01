@@ -19,7 +19,7 @@ work_dir: "/srv/"
 entrypoint: "curl ifconfig.me &&go run ./cmd/server"
 
 # which port to proxy via http(80) (default: null)
-http_proxy: 80
+http_proxy: 8081
 
 # which port to expose <array or int> (default: [])
 expose: 8081
