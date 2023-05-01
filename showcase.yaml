@@ -22,7 +22,7 @@ entrypoint: "curl ifconfig.me &&go run ./cmd/server"
 http_proxy: 8081
 
 # which port to expose <array or int> (default: [])
-expose: 8082
+expose: 8081
 
 # enviromnent variables passed to docker container (default: {})
 envs: {}
