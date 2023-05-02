@@ -571,7 +571,7 @@ func (g *Game) wsXY() {
 		Subprotocols: []string{"json"},
 	}
 
-	u := url.URL{Scheme: "ws", Host: "pikachu20230501.trap.games:80", Path: "/ws"}
+	u := url.URL{Scheme: "wss", Host: "pikachu20230501.trap.games:443", Path: "/ws"}
 	conn, _, err := websocket.Dial(ctx, u.String(), opts)
 	if err != nil {
 		fmt.Println("Error connecting to server:", err)
