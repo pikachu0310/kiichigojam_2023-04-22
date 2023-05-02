@@ -52,6 +52,7 @@ func main() {
 
 func handleConnections(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
+	conn.SetReadDeadline(time.Time{})
 	if err != nil {
 		fmt.Println("Error upgrading connection:", err)
 		return
